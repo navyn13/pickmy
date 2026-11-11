@@ -15,6 +15,9 @@ export const rand = (a, b) => Math.floor(a + Math.random() * (b - a + 1));
 const setState = (state, extra = {}) => { Object.assign(wa, { state }, extra); emit('wa', publicStatus()); };
 export const publicStatus = () => ({ state: wa.state, qr: wa.qr, me: wa.me });
 
+// newer WhatsApp Web builds may leave id._serialized empty
+const msgId = (m) => { const i = m?.id; if (!i) return null; return i._serialized || (i.remote && i.id ? `${i.fromMe}_${i.remote._serialized || i.remote}_${i.id}` : null); };
+
 async function phoneOf(chatId) {
   try {
     const c = await client.getContactById(chatId);
@@ -39,7 +42,7 @@ export function start({ incoming, outgoing }) {
     try {
       if (msg.fromMe || msg.from.endsWith('@g.us') || msg.from === 'status@broadcast') return;
       await onIncoming({
-        phone: await phoneOf(msg.from), chatId: msg.from, waId: msg.id._serialized,
+        phone: await phoneOf(msg.from), chatId: msg.from, waId: msgId(msg),
         ts: (msg.timestamp || Date.now() / 1000) * 1000,
         body: msg.body || (msg.hasMedia ? `[${msg.type} received]` : `[${msg.type}]`),
       });
@@ -51,7 +54,7 @@ export function start({ incoming, outgoing }) {
       if (!msg.fromMe || msg.to.endsWith('@g.us') || msg.to === 'status@broadcast') return;
       await sleep(1500); // let our own sends get recorded first
       await onOutgoingFromPhone({
-        phone: await phoneOf(msg.to), chatId: msg.to, waId: msg.id._serialized,
+        phone: await phoneOf(msg.to), chatId: msg.to, waId: msgId(msg),
         ts: (msg.timestamp || Date.now() / 1000) * 1000, body: msg.body,
       });
     } catch (e) { console.error('outgoing handler failed', e); }

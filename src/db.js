@@ -198,7 +198,7 @@ export function addMessage(contactId, direction, sender, body, waId = null, ts =
 }
 export const messagesFor = (contactId, limit = 500) =>
   db.prepare('SELECT * FROM (SELECT * FROM messages WHERE contact_id=? ORDER BY id DESC LIMIT ?) ORDER BY id').all(contactId, limit);
-export const messageByWaId = (w) => db.prepare('SELECT * FROM messages WHERE wa_id=?').get(w);
+export const messageByWaId = (w) => (w ? db.prepare('SELECT * FROM messages WHERE wa_id=?').get(w) : undefined);
 
 // ---------- counts ----------
 export function counts(businessId) {

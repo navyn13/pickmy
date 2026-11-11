@@ -84,8 +84,10 @@ async function campaignLoop() {
 const timers = new Map(); const locks = new Set();
 
 export async function onIncoming(ev) {
-  const contact = D.findContactForIncoming(ev.phone);
-  if (!contact) return;                       // only people we were given
+  // WhatsApp may identify the sender by a @lid id instead of their number → also match on chat id
+  const contact = D.findContactForIncoming(ev.phone)
+    || D.db.prepare('SELECT * FROM contacts WHERE chat_id=? ORDER BY COALESCE(last_message_at, created_at) DESC LIMIT 1').get(ev.chatId);
+  if (!contact) { console.log('incoming from unknown contact', ev.phone, ev.chatId); return; }
   if (D.messageByWaId(ev.waId)) return;
   if (contact.chat_id !== ev.chatId) D.updateContact(contact.id, { chat_id: ev.chatId });
   record(contact, 'in', 'customer', ev.body, ev.waId, ev.ts);
@@ -106,7 +108,7 @@ export async function onIncoming(ev) {
   if (HUMAN_RE.test(ev.body)) return handoff(contact.id, 'human_handoff_message');
 
   clearTimeout(timers.get(contact.id));       // wait a few seconds for burst messages
-  timers.set(contact.id, setTimeout(() => processReply(contact.id), 6000));
+  timers.set(contact.id, setTimeout(() => processReply(contact.id), 2000));
 }
 
 async function handoff(id, messageKey) {
@@ -143,7 +145,7 @@ async function processReply(id) {
       D.updateContact(id, { draft: r.reply, status: 'NEEDS_HUMAN' });
       pushContact(id); return emit('incoming', { contactId: id, needsHuman: true });
     }
-    await W.sleep(W.rand(3, 9) * 1000);          // look natural
+    await W.sleep(W.rand(1, 3) * 1000);          // look natural
     c = D.getContact(id);
     if (c.bot_paused || D.messagesFor(id, 1).at(-1)?.direction !== 'in') return; // human stepped in
     await sendTo(c, r.reply, 'bot');
@@ -206,7 +208,8 @@ export function discardDraft(id) { D.updateContact(id, { draft: null, bot_paused
 
 /** Owner typed on the phone itself → record it and pause the bot for that chat. */
 export async function onOutgoingFromPhone(ev) {
-  const c = D.findContactForIncoming(ev.phone);
+  const c = D.findContactForIncoming(ev.phone)
+    || D.db.prepare('SELECT * FROM contacts WHERE chat_id=? ORDER BY COALESCE(last_message_at, created_at) DESC LIMIT 1').get(ev.chatId);
   if (!c || D.messageByWaId(ev.waId)) return;
   // our own send may have been recorded without a wa_id (lookup failed) — don't record it twice
   if (D.db.prepare("SELECT 1 FROM messages WHERE contact_id=? AND direction='out' AND body=? AND wa_id IS NULL AND created_at>?")
