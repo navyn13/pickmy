@@ -93,7 +93,24 @@ export function sendText(chatId, text, { typing = true } = {}) {
       } catch { /* typing indicator is cosmetic */ }
     }
     const m = await client.sendMessage(chatId, text);
-    return m.id._serialized;
+    if (m?.id?._serialized) return m.id._serialized;
+    // whatsapp-web.js sometimes sends fine but can't look the new message up afterwards
+    // (returns undefined). Find it in the chat instead of failing a send that went out.
+    // Newer WhatsApp Web builds renamed the id field, so read the chat's in-memory messages directly.
+    await sleep(1000);
+    try {
+      const id = await client.pupPage.evaluate((chatId, text, since) => {
+        const wid = window.require('WAWebWidFactory').createWid(chatId);
+        const chat = window.require('WAWebCollections').Chat.get(wid);
+        const hit = chat?.msgs.getModelsArray().reverse().find((x) => x.id?.fromMe && x.body === text && x.t >= since);
+        if (!hit) return null;
+        const i = hit.id;
+        return i._serialized || (i.remote && i.id ? `true_${i.remote._serialized || i.remote}_${i.id}` : String(i));
+      }, chatId, text, Math.floor(Date.now() / 1000) - 120);
+      if (id) return id;
+    } catch (e) { console.error('send lookup failed:', e.message); }
+    // sendMessage didn't throw, so WhatsApp accepted it; we just couldn't read back its id.
+    return null;
   });
   chain = job.catch(() => {});
   return job;

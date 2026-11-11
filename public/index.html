@@ -2,130 +2,399 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pickmy WhatsApp Bot</title>
 <style>
-:root{--bg:#f0f2f5;--panel:#fff;--line:#e3e6ea;--text:#1c1e21;--muted:#667781;--green:#128c7e;--bot:#e7f3ff;--me:#d9fdd3;--red:#e53935}
-*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
-button,input,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 10px}
-button.primary{background:var(--green);color:#fff;border-color:var(--green)}button.danger{background:var(--red);color:#fff;border-color:var(--red)}
-#top{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
-#top .stats span{margin-right:12px}#top b{font-size:15px}.sp{flex:1}
+:root{
+  --bg:#f6f7f9;--panel:#fff;--panel-2:#fafbfc;--line:#e8eaee;--line-2:#d9dde3;
+  --text:#111827;--muted:#6b7280;--faint:#9ca3af;
+  --accent:#0f9d76;--accent-hover:#0b8564;--accent-soft:#e7f6f1;
+  --red:#dc2626;--red-soft:#fdecec;--amber-soft:#fff8e6;--amber-line:#f5d98b;
+  --bubble-in:#fff;--bubble-bot:#eef4ff;--bubble-me:#e3f7ee;--chat-bg:#f3f4f6;
+  --shadow:0 1px 2px rgba(16,24,40,.06);--radius:10px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1115;--panel:#16191f;--panel-2:#1b1f26;--line:#262a33;--line-2:#333845;
+  --text:#e5e7eb;--muted:#9aa1ad;--faint:#6b7280;
+  --accent:#19b88a;--accent-hover:#15a37a;--accent-soft:#11332a;
+  --red:#ef4444;--red-soft:#3a1717;--amber-soft:#2d2512;--amber-line:#5c4a1c;
+  --bubble-in:#1f232b;--bubble-bot:#1c2840;--bubble-me:#15322a;--chat-bg:#111318;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+}}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+input,textarea,select{background:var(--panel);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;outline:none;transition:border-color .15s,box-shadow .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical}
+button{cursor:pointer;border:1px solid var(--line-2);background:var(--panel);border-radius:8px;padding:7px 12px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s,border-color .15s}
+button:hover{background:var(--panel-2);border-color:var(--faint)}
+button:disabled{opacity:.6;cursor:default}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}button.primary:hover{background:var(--accent-hover)}
+button.danger{background:var(--red);border-color:var(--red);color:#fff}button.danger:hover{filter:brightness(.95)}
+button.ghost{border-color:transparent;background:transparent;color:var(--muted)}button.ghost:hover{background:var(--panel-2);color:var(--text)}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sp{flex:1}.muted{color:var(--muted)}
+
+/* top bar */
+#top{display:flex;gap:16px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-.01em}
+.logo{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px}
+#wa{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);cursor:pointer;color:var(--muted)}
+#wa:hover{border-color:var(--line-2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint)}.dot.ready{background:#22c55e;box-shadow:0 0 0 3px #22c55e33}.dot.qr{background:#f59e0b}
+#stats{display:flex;gap:18px}
+.stat{display:flex;flex-direction:column;line-height:1.15}
+.stat .v{font-weight:650;font-size:15px;font-variant-numeric:tabular-nums}.stat .k{font-size:11px;color:var(--muted)}
+.stat.alert .v{color:var(--red)}
+.actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.divider{width:1px;height:22px;background:var(--line)}
+
+/* layout */
 #main{flex:1;display:flex;min-height:0}
-#left{width:340px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
-#left .tools{padding:8px;border-bottom:1px solid var(--line)}#left input{width:100%;padding:7px;border:1px solid var(--line);border-radius:6px}
-#filters{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}#filters button{padding:3px 8px;font-size:12px;border-radius:12px}#filters button.on{background:var(--green);color:#fff}
-#list{flex:1;overflow:auto}.row{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}.row:hover{background:#f7f8f9}.row.sel{background:#e9f5f3}
-.row .l1{display:flex;justify-content:space-between;gap:6px}.row .nm{font-weight:600}.row .t{color:var(--muted);font-size:11px}
-.row .l2{display:flex;justify-content:space-between;gap:6px;margin-top:3px;color:var(--muted)}.row .l2 .tx{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.badge{font-size:10px;padding:2px 6px;border-radius:10px;background:#ddd;color:#333;white-space:nowrap}
-.NEEDS_HUMAN{background:var(--red);color:#fff}.REPLIED{background:#c8e6c9}.SENT{background:#bbdefb}.NO_RESPONSE{background:#eee;color:#888}.DONE,.STOPPED{background:#d7ccc8}.INVALID{background:#ffcdd2}
-.unread{background:var(--green);color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
-#right{flex:1;display:flex;flex-direction:column;min-width:0}
-#head{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:6px}
-.m{max-width:68%;padding:7px 10px;border-radius:8px;white-space:pre-wrap;word-break:break-word;background:var(--panel);align-self:flex-start;box-shadow:0 1px 1px #0002}
-.m.out{align-self:flex-end;background:var(--bot)}.m.human{background:var(--me)}.m small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
-#draft{display:none;padding:8px 14px;background:#fff8e1;border-top:1px solid #ffe082}#draft textarea{width:100%;height:60px}
-#compose{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line)}#compose textarea{flex:1;height:44px;resize:none;padding:8px;border:1px solid var(--line);border-radius:6px}
-#notes{width:100%;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:12px;height:34px}
-.empty{margin:auto;color:var(--muted)}
-dialog{border:1px solid var(--line);border-radius:10px;padding:16px;width:min(640px,94vw)}dialog::backdrop{background:#0006}
-dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialog textarea,dialog input[type=text],dialog input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bbb;margin-right:4px}.dot.ready{background:#2e7d32}
+#left{width:340px;flex:none;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+#left .tools{padding:12px;border-bottom:1px solid var(--line)}
+.search{position:relative}.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.search input{width:100%;padding-left:32px;background:var(--panel-2)}
+#filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#filters button{padding:4px 10px;font-size:12px;border-radius:999px;border-color:var(--line);color:var(--muted)}
+#filters button.on{background:var(--text);border-color:var(--text);color:var(--panel)}
+#list{flex:1;overflow:auto}
+.row{display:flex;gap:10px;padding:11px 12px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start}
+.row:hover{background:var(--panel-2)}.row.sel{background:var(--accent-soft)}
+.av{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:13px;color:#fff}
+.row .body{flex:1;min-width:0}
+.row .l1,.row .l2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.row .nm{font-weight:600;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row .t{color:var(--faint);font-size:11px;flex:none}
+.row .l2{margin-top:2px}
+.row .tx{color:var(--muted);font-size:13px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.unread{background:var(--accent);color:#fff;border-radius:999px;padding:0 6px;font-size:11px;font-weight:600;margin-left:6px}
+.badge{font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;background:var(--panel-2);color:var(--muted);border:1px solid var(--line);text-transform:capitalize;letter-spacing:.01em}
+.NEEDS_HUMAN{background:var(--red-soft);color:var(--red);border-color:transparent}
+.REPLIED{background:#dcfce7;color:#166534;border-color:transparent}
+.SENT{background:#dbeafe;color:#1e40af;border-color:transparent}
+.NEW{background:#ede9fe;color:#5b21b6;border-color:transparent}
+.INVALID{background:#fee2e2;color:#991b1b;border-color:transparent}
+@media (prefers-color-scheme:dark){.REPLIED{background:#14321f;color:#86efac}.SENT{background:#172a4a;color:#93c5fd}.NEW{background:#2a1f4a;color:#c4b5fd}.INVALID{background:#3a1717;color:#fca5a5}}
+
+/* chat */
+#right{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--chat-bg)}
+.empty{margin:auto;color:var(--muted);text-align:center}
+.empty svg{width:40px;height:40px;stroke-width:1.5;color:var(--faint);margin-bottom:8px}
+#chat{flex:1;flex-direction:column;min-height:0}
+#head{padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#head .who{display:flex;gap:10px;align-items:center;min-width:0}
+#hname{font-weight:650;font-size:15px}#hphone{color:var(--muted);font-size:12px}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+.switch input{appearance:none;width:32px;height:18px;border-radius:999px;background:var(--line-2);position:relative;padding:0;border:0;cursor:pointer;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s;box-shadow:var(--shadow)}
+.switch input:checked{background:#f59e0b}.switch input:checked::after{transform:translateX(14px)}
+.switch input:focus{box-shadow:none}
+#statusSel{padding:6px 8px;font-size:13px}
+.notesbar{padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+#notes{width:100%;font-size:13px;height:36px;min-height:36px;background:var(--panel-2);border-color:var(--line)}
+#msgs{flex:1;overflow:auto;padding:20px 16px;display:flex;flex-direction:column;gap:8px}
+.m{max-width:min(68%,560px);padding:8px 12px;border-radius:14px;border-bottom-left-radius:4px;white-space:pre-wrap;word-break:break-word;background:var(--bubble-in);align-self:flex-start;box-shadow:var(--shadow)}
+.m.out{align-self:flex-end;background:var(--bubble-bot);border-bottom-left-radius:14px;border-bottom-right-radius:4px}
+.m.human{background:var(--bubble-me)}
+.m small{display:block;color:var(--faint);font-size:10.5px;margin-top:4px}
+.m.out small{text-align:right}
+#draft{display:none;margin:0 16px 10px;padding:12px;background:var(--amber-soft);border:1px solid var(--amber-line);border-radius:var(--radius)}
+#draft .dh{font-size:12px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+#draft textarea{width:100%;height:70px;margin-bottom:8px}
+#draft .da{display:flex;gap:6px;justify-content:flex-end}
+#compose{display:flex;gap:8px;padding:12px 16px;background:var(--panel);border-top:1px solid var(--line);align-items:flex-end}
+#compose textarea{flex:1;height:44px;max-height:160px;resize:none;border-radius:12px}
+#compose button{height:44px;padding:0 16px;border-radius:12px}
+
+/* dialogs */
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;width:min(600px,94vw);background:var(--panel);color:var(--text);box-shadow:0 20px 50px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(15,17,21,.45);backdrop-filter:blur(2px)}
+.dh2{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dh2 h3{margin:0;font-size:15px}
+.db{padding:6px 18px 14px;max-height:65vh;overflow:auto}
+.df{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line);background:var(--panel-2);border-radius:0 0 14px 14px}
+dialog label{display:block;margin:12px 0 5px;font-weight:600;font-size:12px;color:var(--muted)}
+dialog textarea,dialog input[type=text],dialog input[type=number]{width:100%}
+#bizText{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin-top:12px}
+.hint{color:var(--muted);font-size:12px;margin:12px 0 0;padding:10px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.sect{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint);font-weight:700;margin:18px 0 0}
+#qrBody{text-align:center;padding:10px 0}#qrBody img{max-width:260px;width:100%;border-radius:8px;background:#fff;padding:8px}
+
+/* toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--text);color:var(--panel);padding:10px 16px;border-radius:10px;font-size:13px;white-space:pre-line;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;z-index:10;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}#toast.err{background:var(--red);color:#fff}
+
+/* businesses + profiles */
+#bizSel{font-weight:600;padding:6px 10px;max-width:220px}
+.biztag{font-size:10.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:0 6px;margin-left:6px;font-weight:500}
+.profile{display:grid;grid-template-columns:1.2fr .5fr 1fr 1fr;gap:8px;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.profile label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);font-weight:600}
+.profile input,.profile textarea{font-size:13px;padding:6px 8px;background:var(--panel-2);border-color:var(--line);font-weight:400;color:var(--text)}
+.profile .wide{grid-column:1/-1}.profile textarea{height:34px;min-height:34px}
+.tabs{display:flex;gap:4px;margin-top:12px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--muted);padding:8px 12px}
+.tabs button.on{border-bottom-color:var(--accent);color:var(--text)}
+#pasteText{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+#bInfo{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+@media (max-width:760px){.profile{grid-template-columns:1fr 1fr}}
+
+@media (max-width:760px){#left{width:100%}#main.chatting #left{display:none}#main:not(.chatting) #right{display:none}#stats{display:none}.lbl{display:none}}
 </style></head><body>
 
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+</defs></svg>
+
 <div id="top">
-  <b>Pickmy Bot</b>
-  <span id="wa" style="cursor:pointer" onclick="openQR()"></span>
-  <span class="stats" id="stats"></span><span class="sp"></span>
-  <button onclick="openCustom()">✉ New message</button>
-  <button onclick="document.getElementById('file').click()">⬆ Upload Excel</button>
-  <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden onchange="uploadFile(this)">
-  <button id="campBtn" onclick="toggleCampaign()"></button>
-  <button onclick="openBiz()">📝 business.md</button>
-  <button onclick="openSettings()">⚙ Settings</button>
-  <button onclick="location='/api/export'">⬇ Export</button>
-</div>
-<div id="main">
-  <div id="left"><div class="tools"><input id="q" placeholder="Search chats, numbers, notes…" oninput="debounceLoad()">
-    <div id="filters"></div></div><div id="list"></div></div>
-  <div id="right"><div class="empty" id="none">Select a chat</div>
-    <div id="chat" style="display:none;flex:1;flex-direction:column;min-height:0">
-      <div id="head"><div><b id="hname"></b><div class="t" id="hphone" style="color:var(--muted)"></div></div><span id="hbadge" class="badge"></span><span class="sp"></span>
-        <label><input type="checkbox" id="pause" onchange="setPause(this.checked)"> Pause bot</label>
-        <select id="statusSel" onchange="setStatus(this.value)"></select></div>
-      <div style="padding:6px 14px;background:var(--panel)"><textarea id="notes" placeholder="Notes about this contact…" onchange="saveNotes()"></textarea></div>
-      <div id="msgs"></div>
-      <div id="draft"><b>Bot draft (approval mode):</b><textarea id="draftText"></textarea>
-        <button class="primary" onclick="approveDraft()">Send</button> <button onclick="discardDraft()">Discard</button></div>
-      <div id="compose"><textarea id="box" placeholder="Type a message… (sending pauses the bot for this chat)"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea><button class="primary" onclick="send()">Send</button></div>
-    </div></div>
+  <div class="brand"><div class="logo">P</div>Pickmy</div>
+  <select id="bizSel" onchange="selectBiz(this.value)" title="Business"></select>
+  <span id="wa" onclick="openQR()" title="WhatsApp connection"></span>
+  <div id="stats"></div>
+  <span class="sp"></span>
+  <div class="actions">
+    <button id="campBtn" onclick="toggleCampaign()"></button>
+    <button onclick="openAdd()"><svg class="i"><use href="#i-up"/></svg><span class="lbl">Add people</span></button>
+    <button onclick="openCustom()"><svg class="i"><use href="#i-msg"/></svg><span class="lbl">New message</span></button>
+    <span class="divider"></span>
+    <button class="ghost" id="bizBtn" title="Business info & messages" onclick="openBiz()"><svg class="i"><use href="#i-doc"/></svg><span class="lbl">Business</span></button>
+    <button class="ghost" title="Sending limits (shared WhatsApp number)" onclick="openSettings()"><svg class="i"><use href="#i-gear"/></svg><span class="lbl">Limits</span></button>
+  </div>
 </div>
 
-<dialog id="dBiz"><h3>business.md</h3><textarea id="bizText" rows="18"></textarea><p><button class="primary" onclick="saveBiz()">Save</button> <button onclick="dBiz.close()">Close</button></p></dialog>
-<dialog id="dCustom"><h3>Send a message to anyone</h3>
-<label>Phone number (with country code, or 10 digits)</label><input type="text" id="cPhone" placeholder="e.g. 6386534239">
-<label>Name (optional)</label><input type="text" id="cName">
-<label>Message</label><textarea id="cText" rows="4"></textarea>
-<p style="color:var(--muted);font-size:12px">The bot stays paused for this chat — replies appear in the dashboard and you answer manually. Untick "Pause bot" in the chat to let the bot take over.</p>
-<p><button class="primary" id="cSend" onclick="sendCustom()">Send</button> <button onclick="dCustom.close()">Close</button></p></dialog>
-<dialog id="dQR"><h3>WhatsApp connection</h3><div id="qrBody"></div><p><button onclick="dQR.close()">Close</button></p></dialog>
-<dialog id="dSet"><h3>Settings</h3><div id="setBody"></div><p><button class="primary" onclick="saveSettings()">Save</button> <button onclick="dSet.close()">Close</button></p></dialog>
+<div id="main">
+  <div id="left">
+    <div class="tools">
+      <div class="search"><svg class="i"><use href="#i-search"/></svg><input id="q" placeholder="Search chats, numbers, notes…" oninput="debounceLoad()"></div>
+      <div id="filters"></div>
+    </div>
+    <div id="list"></div>
+  </div>
+  <div id="right">
+    <div class="empty" id="none"><svg class="i"><use href="#i-msg"/></svg><div>Select a chat to start</div></div>
+    <div id="chat" style="display:none">
+      <div id="head">
+        <button class="ghost" id="backBtn" style="display:none;padding:6px" onclick="closeChat()"><svg class="i"><use href="#i-back"/></svg></button>
+        <div class="who"><div class="av" id="hav"></div><div><div id="hname"></div><div id="hphone"></div></div></div>
+        <span id="hbadge" class="badge"></span>
+        <span class="sp"></span>
+        <label class="switch"><input type="checkbox" id="pause" onchange="setPause(this.checked)">Pause bot</label>
+        <select id="statusSel" onchange="setStatus(this.value)"></select>
+      </div>
+      <div class="profile" title="The bot uses these details in the conversation">
+        <label>Name<input id="pName" onchange="saveProfile()"></label>
+        <label>Age<input id="pAge" onchange="saveProfile()"></label>
+        <label>Education<input id="pEducation" onchange="saveProfile()"></label>
+        <label>Grades<input id="pGrades" onchange="saveProfile()"></label>
+        <label class="wide">Notes (the bot sees these too)<textarea id="notes" placeholder="Anything else about this person…" onchange="saveProfile()"></textarea></label>
+      </div>
+      <div id="msgs"></div>
+      <div id="draft">
+        <div class="dh"><svg class="i"><use href="#i-edit"/></svg>Bot draft — review before sending</div>
+        <textarea id="draftText"></textarea>
+        <div class="da"><button onclick="discardDraft()">Discard</button><button class="primary" onclick="approveDraft()">Approve &amp; send</button></div>
+      </div>
+      <div id="compose">
+        <textarea id="box" placeholder="Type a message… (sending pauses the bot for this chat)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea>
+        <button class="primary" onclick="send()"><svg class="i"><use href="#i-send"/></svg>Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="dBiz">
+  <div class="dh2"><h3 id="bTitle">Business</h3><button class="ghost" onclick="dBiz.close()"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db">
+    <label>Business name</label><input type="text" id="bName">
+    <label>Business info — the bot answers ONLY from this</label>
+    <textarea id="bInfo" rows="14"></textarea>
+    <div class="sect">Messages</div>
+    <p class="hint" style="margin-top:8px">Placeholders: {{name}} {{age}} {{education}} {{grades}} {{business}}</p>
+    <label>First message</label><textarea id="bFirst" rows="2"></textarea>
+    <label>Follow-up message (no reply)</label><textarea id="bFollow" rows="2"></textarea>
+    <label>Holding message (bot doesn't know the answer)</label><textarea id="bHold" rows="2"></textarea>
+    <label>When the person asks for a human</label><textarea id="bHandoff" rows="2"></textarea>
+    <label class="switch" style="margin-top:14px"><input type="checkbox" id="bApproval">Approval mode — bot drafts replies, you approve each one</label>
+  </div>
+  <div class="df"><button class="ghost" id="bDelete" onclick="deleteBiz()" style="margin-right:auto;color:var(--red)">Delete business</button><button onclick="dBiz.close()">Cancel</button><button class="primary" onclick="saveBiz()">Save</button></div>
+</dialog>
+
+<dialog id="dAdd">
+  <div class="dh2"><h3>Add people</h3><button class="ghost" onclick="dAdd.close()"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db">
+    <label>Business</label><select id="aBiz" style="width:100%"></select>
+    <div class="tabs"><button id="tPaste" class="on" onclick="addTab('paste')">Paste a list</button><button id="tOne" onclick="addTab('one')">One person</button></div>
+    <div id="panePaste">
+      <label>One person per line: name, number, age, education, grades</label>
+      <textarea id="pasteText" rows="10" placeholder="Rahul Sharma, 9876543210, 17, Class 12 Science, 92% PCM
+Priya Verma, 9123456780, 19, B.Com 1st year, CGPA 8.1
+Aman, +91 98111 22233, 16, Class 10, A1 in Maths, B2 in English"></textarea>
+      <p class="hint">Only name and number are required. Commas, tabs (copy from Google Sheets/Excel), | or ; all work. Grades can contain commas. If a number is already in this business, its details are updated.</p>
+    </div>
+    <div id="paneOne" style="display:none">
+      <div class="grid2">
+        <div><label>Name</label><input type="text" id="oName"></div>
+        <div><label>Phone number</label><input type="text" id="oPhone" placeholder="10 digits or with country code"></div>
+        <div><label>Age</label><input type="text" id="oAge"></div>
+        <div><label>Education</label><input type="text" id="oEducation" placeholder="e.g. Class 12 Science"></div>
+      </div>
+      <label>Grades</label><input type="text" id="oGrades" placeholder="e.g. 92% PCM, Maths A1">
+    </div>
+  </div>
+  <div class="df"><button onclick="dAdd.close()">Cancel</button><button class="primary" id="aSave" onclick="saveAdd()">Add</button></div>
+</dialog>
+
+<dialog id="dCustom">
+  <div class="dh2"><h3>New message</h3><button class="ghost" onclick="dCustom.close()"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db">
+    <label>Business</label><select id="cBiz" style="width:100%"></select>
+    <div class="grid2">
+      <div><label>Phone number</label><input type="text" id="cPhone" placeholder="e.g. 6386534239"></div>
+      <div><label>Name (optional)</label><input type="text" id="cName"></div>
+    </div>
+    <label>Message</label><textarea id="cText" rows="4"></textarea>
+    <p class="hint">Include the country code or use a 10‑digit number. The bot stays paused for this chat — replies show up here for you to answer. Turn off “Pause bot” in the chat to let the bot take over.</p>
+  </div>
+  <div class="df"><button onclick="dCustom.close()">Cancel</button><button class="primary" id="cSend" onclick="sendCustom()"><svg class="i"><use href="#i-send"/></svg>Send</button></div>
+</dialog>
+
+<dialog id="dQR">
+  <div class="dh2"><h3>WhatsApp connection</h3><button class="ghost" onclick="dQR.close()"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db"><div id="qrBody"></div></div>
+</dialog>
+
+<dialog id="dSet">
+  <div class="dh2"><h3>Sending limits <span class="muted" style="font-weight:400;font-size:12px">— shared by all businesses (one WhatsApp number)</span></h3><button class="ghost" onclick="dSet.close()"><svg class="i"><use href="#i-x"/></svg></button></div>
+  <div class="db" id="setBody"></div>
+  <div class="df"><button onclick="dSet.close()">Cancel</button><button class="primary" onclick="saveSettings()">Save settings</button></div>
+</dialog>
+
+<div id="toast"></div>
 
 <script>
 const $=id=>document.getElementById(id), api=async(p,o={})=>{const r=await fetch('/api'+p,{headers:{'Content-Type':'application/json'},...o,body:o.body&&JSON.stringify(o.body)});
   const j=await r.json();if(!r.ok)throw new Error(j.error||'Error');return j};
-const FILTERS=[['ALL','All'],['NEEDS_HUMAN','Needs Human'],['REPLIED','Replied'],['SENT','Sent'],['NO_RESPONSE','No Response'],['DONE','Done']];
+const FILTERS=[['ALL','All'],['NEEDS_HUMAN','Needs human'],['REPLIED','Replied'],['SENT','Sent'],['NO_RESPONSE','No response'],['DONE','Done']];
 const STATUSES=['NEW','SENT','REPLIED','NEEDS_HUMAN','NO_RESPONSE','DONE','STOPPED','INVALID'];
 let filter='ALL', cur=null, st=null, ws, timer;
+let biz=Number((()=>{try{return localStorage.getItem('biz')}catch{return 0}})())||0;   // 0 = all businesses
+const curBiz=()=>st?.businesses.find(b=>b.id===biz);
+const bizOptions=sel=>st.businesses.map(b=>`<option value="${b.id}" ${b.id===(sel||biz)?'selected':''}>${esc(b.name)}</option>`).join('');
+function needBiz(){if(st.businesses.length)return true;toast('Create a business first (business menu at the top left)',1);return false}
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ago=t=>{if(!t)return'';const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()};
+const ago=t=>{if(!t)return'';const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString([],{day:'numeric',month:'short'})};
+const label=s=>s.replace(/_/g,' ').toLowerCase();
+const COLORS=['#0f9d76','#3b82f6','#8b5cf6','#ec4899','#f59e0b','#ef4444','#14b8a6','#6366f1'];
+const avColor=k=>COLORS[[...String(k)].reduce((a,c)=>a+c.charCodeAt(0),0)%COLORS.length];
+const initials=c=>{const n=(c.name||'').trim();if(!n)return String(c.phone).slice(-2);const p=n.split(/\s+/);return(p[0][0]+(p[1]?.[0]||'')).toUpperCase()};
+let tt;function toast(msg,err){const t=$('toast');t.textContent=msg;t.className='show'+(err?' err':'');clearTimeout(tt);tt=setTimeout(()=>t.className=err?'err':'',err?5000:3500)}
 
 function beep(){try{const c=new AudioContext(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.1;o.start();o.stop(c.currentTime+.25)}catch{}}
-function renderState(s){st=s;const w=s.wa,c=s.counts;
-  $('wa').innerHTML=`<span class="dot ${w.state}"></span>WhatsApp: ${w.state}${w.state==='qr'?' (click to scan)':''}`;
-  $('stats').innerHTML=`Contacts <b>${c.total}</b> · Sent <b>${c.sent}</b> (today ${c.sentToday}/${s.settings.daily_limit}) · Replied <b>${c.replied}</b> · Needs human <b style="color:var(--red)">${c.needsHuman}</b>`;
-  const on=s.settings.campaign_running==='1';$('campBtn').textContent=on?'⏸ Stop campaign':'▶ Start campaign';$('campBtn').className=on?'danger':'primary';
-  document.title=(c.needsHuman?`(${c.needsHuman}) `:'')+'Pickmy WhatsApp Bot';
+function renderState(s){st=s;const w=s.wa;
+  if(biz&&!curBiz())biz=0;
+  const b=curBiz(),c=b?b.counts:s.counts;
+  $('bizSel').innerHTML=`<option value="0">All businesses</option>${bizOptions()}<option value="new">+ New business…</option>`;$('bizSel').value=String(biz);
+  $('wa').innerHTML=`<span class="dot ${w.state}"></span>${w.state==='ready'?'Connected':w.state==='qr'?'Scan QR to connect':esc(w.state)}`;
+  const stat=(v,k,cls='')=>`<div class="stat ${cls}"><span class="v">${v}</span><span class="k">${k}</span></div>`;
+  $('stats').innerHTML=stat(c.total,'People')+stat(c.newCount,'Not sent yet')+stat(c.sent,'Sent')+stat(`${s.counts.sentTodayAll}<span class="muted" style="font-weight:400">/${s.settings.daily_limit}</span>`,'Today (all)')+stat(c.replied,'Replied')+stat(c.needsHuman,'Needs human',c.needsHuman?'alert':'');
+  const cb=$('campBtn');
+  if(b){const on=!!b.campaign_running;cb.style.display='';
+    cb.innerHTML=on?'<svg class="i"><use href="#i-stop"/></svg>Stop campaign':'<svg class="i"><use href="#i-play"/></svg>Start campaign';cb.className=on?'danger':'primary'}
+  else{const n=s.businesses.filter(x=>x.campaign_running).length;cb.style.display=s.businesses.length?'':'none';
+    cb.innerHTML=`<svg class="i"><use href="#i-play"/></svg>${n} campaign${n===1?'':'s'} running`;cb.className=''}
+  $('bizBtn').style.display=b?'':'none';
+  document.title=(s.counts.needsHuman?`(${s.counts.needsHuman}) `:'')+'Pickmy WhatsApp Bot';
   if($('dQR').open)openQR()}
+async function selectBiz(v){
+  if(v==='new'){$('bizSel').value=String(biz);const name=prompt('Name of the new business:');if(!name||!name.trim())return;
+    try{const b=await api('/businesses',{method:'POST',body:{name}});biz=b.id;await refreshState();openBiz()}catch(e){return toast(e.message,1)}}
+  else biz=Number(v);
+  try{localStorage.setItem('biz',biz)}catch{}
+  renderState(st);closeChat()}
 async function refreshState(){renderState(await api('/state'))}
 
 function renderFilters(){$('filters').innerHTML=FILTERS.map(([k,l])=>`<button class="${k===filter?'on':''}" onclick="filter='${k}';renderFilters();loadList()">${l}</button>`).join('')}
 let lt;function debounceLoad(){clearTimeout(lt);lt=setTimeout(loadList,250)}
-async function loadList(){const rows=await api(`/contacts?status=${filter}&q=${encodeURIComponent($('q').value)}`);
-  $('list').innerHTML=rows.map(c=>`<div class="row ${c.id===cur?'sel':''}" onclick="openChat(${c.id})"><div class="l1"><span class="nm">${esc(c.name||'+'+c.phone)}${c.unread?`<span class="unread">${c.unread}</span>`:''}</span><span class="t">${ago(c.last_message_at)}</span></div>
-  <div class="l2"><span class="tx">${c.draft?'✏ draft pending · ':''}${esc(c.last_message_text)||'<i>no messages yet</i>'}</span><span class="badge ${c.status}">${c.status.replace('_',' ')}${c.bot_paused?' ⏸':''}</span></div></div>`).join('')||'<div class="empty" style="padding:20px">No contacts</div>'}
+async function loadList(){const rows=await api(`/contacts?business=${biz}&status=${filter}&q=${encodeURIComponent($('q').value)}`);
+  $('list').innerHTML=rows.map(c=>`<div class="row ${c.id===cur?'sel':''}" onclick="openChat(${c.id})">
+    <div class="av" style="background:${avColor(c.phone)}">${esc(initials(c))}</div>
+    <div class="body"><div class="l1"><span class="nm">${esc(c.name||'+'+c.phone)}${biz?'':`<span class="biztag">${esc(c.business_name)}</span>`}</span><span class="t">${ago(c.last_message_at)}${c.unread?`<span class="unread">${c.unread}</span>`:''}</span></div>
+    <div class="l2"><span class="tx">${c.draft?'✏️ Draft pending · ':''}${esc(c.last_message_text)||'<i>No messages yet</i>'}</span><span class="badge ${c.status}">${label(c.status)}${c.bot_paused?' · paused':''}</span></div></div></div>`).join('')
+    ||`<div class="empty" style="padding:40px 20px">${st.businesses.length?'No people yet — click <b>Add people</b>':'Create your first business from the menu at the top left'}</div>`}
 
 async function openChat(id){cur=id;const {contact:c,messages}=await api('/contacts/'+id);renderChat(c,messages);loadList()}
-function renderChat(c,messages){$('none').style.display='none';$('chat').style.display='flex';
-  $('hname').textContent=c.name||('+'+c.phone);$('hphone').textContent='+'+c.phone;$('hbadge').textContent=c.status.replace('_',' ');$('hbadge').className='badge '+c.status;
-  $('pause').checked=!!c.bot_paused;$('statusSel').innerHTML=STATUSES.map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('');
+function closeChat(){cur=null;$('main').classList.remove('chatting');$('chat').style.display='none';$('none').style.display='';loadList()}
+function renderChat(c,messages){$('none').style.display='none';$('chat').style.display='flex';$('main').classList.add('chatting');
+  $('backBtn').style.display=innerWidth<=760?'':'none';
+  $('hav').textContent=initials(c);$('hav').style.background=avColor(c.phone);
+  $('hname').textContent=c.name||('+'+c.phone);$('hphone').textContent='+'+c.phone+' · '+c.business_name;
+  for(const [id,k] of [['pName','name'],['pAge','age'],['pEducation','education'],['pGrades','grades']])if(document.activeElement!==$(id))$(id).value=c[k]||'';
+  $('hbadge').textContent=label(c.status);$('hbadge').className='badge '+c.status;
+  $('pause').checked=!!c.bot_paused;$('statusSel').innerHTML=STATUSES.map(s=>`<option value="${s}" ${s===c.status?'selected':''}>${label(s)}</option>`).join('');
   if(document.activeElement!==$('notes'))$('notes').value=c.notes||'';
   $('draft').style.display=c.draft?'block':'none';if(c.draft&&document.activeElement!==$('draftText'))$('draftText').value=c.draft;
-  const box=$('msgs');box.innerHTML=messages.map(m=>`<div class="m ${m.direction==='out'?'out':''} ${m.sender==='human'?'human':''}">${esc(m.body)}<small>${m.sender==='customer'?'Customer':m.sender==='bot'?'🤖 Bot':'👤 You'} · ${new Date(m.created_at).toLocaleString()}</small></div>`).join('');
+  const box=$('msgs');box.innerHTML=messages.map(m=>`<div class="m ${m.direction==='out'?'out':''} ${m.sender==='human'?'human':''}">${esc(m.body)}<small>${m.sender==='customer'?'Customer':m.sender==='bot'?'🤖 Bot':'You'} · ${new Date(m.created_at).toLocaleString([],{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</small></div>`).join('')
+    ||'<div class="empty">No messages yet</div>';
   box.scrollTop=box.scrollHeight}
-const act=(p,b)=>api(`/contacts/${cur}/${p}`,{method:'POST',body:b||{}}).then(()=>openChat(cur)).catch(e=>alert(e.message));
+const act=(p,b)=>api(`/contacts/${cur}/${p}`,{method:'POST',body:b||{}}).then(()=>openChat(cur)).catch(e=>toast(e.message,1));
 const send=()=>{const t=$('box').value.trim();if(t){$('box').value='';act('send',{text:t})}};
 const setPause=p=>act('pause',{paused:p}), setStatus=s=>act('status',{status:s});
-const saveNotes=()=>api(`/contacts/${cur}/notes`,{method:'POST',body:{notes:$('notes').value}});
+const saveProfile=()=>api(`/contacts/${cur}/profile`,{method:'PUT',body:{name:$('pName').value,age:$('pAge').value,education:$('pEducation').value,grades:$('pGrades').value,notes:$('notes').value}}).then(()=>toast('Saved')).catch(e=>toast(e.message,1));
 const approveDraft=()=>act('draft/approve',{text:$('draftText').value}), discardDraft=()=>act('draft/discard');
 
-async function uploadFile(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);
-  const r=await fetch('/api/upload',{method:'POST',body:fd});const j=await r.json();inp.value='';
-  alert(r.ok?`Found ${j.found} valid numbers\nAdded: ${j.added}\nAlready in database: ${j.alreadyInDb}\nDuplicates in sheet: ${j.duplicatesInSheet}\nInvalid: ${j.invalid}`:j.error);loadList()}
-async function toggleCampaign(){const on=st.settings.campaign_running==='1';
-  if(!on&&!confirm('Start sending first messages to all NEW contacts (up to the daily limit)?'))return;renderState(await api('/campaign',{method:'POST',body:{running:!on}}))}
-function openCustom(){['cPhone','cName','cText'].forEach(i=>$(i).value='');$('dCustom').showModal()}
+async function toggleCampaign(){const b=curBiz();
+  if(!b){const on=st.businesses.filter(x=>x.campaign_running).map(x=>x.name);return toast(on.length?'Running: '+on.join(', ')+'\nPick a business to start/stop it.':'Pick a business at the top left to start its campaign.')}
+  const on=!!b.campaign_running;
+  if(!on&&!confirm(`Start "${b.name}"? First messages go to its ${b.counts.newCount} not-yet-contacted people (daily limit is shared by all businesses).`))return;
+  try{renderState(await api(`/businesses/${b.id}/campaign`,{method:'POST',body:{running:!on}}))}catch(e){toast(e.message,1)}}
+
+function openAdd(){if(!needBiz())return;$('aBiz').innerHTML=bizOptions(biz||st.businesses[0].id);
+  ['pasteText','oName','oPhone','oAge','oEducation','oGrades'].forEach(i=>$(i).value='');addTab('paste');$('dAdd').showModal()}
+let addMode='paste';
+function addTab(m){addMode=m;$('tPaste').className=m==='paste'?'on':'';$('tOne').className=m==='one'?'on':'';
+  $('panePaste').style.display=m==='paste'?'':'none';$('paneOne').style.display=m==='one'?'':'none'}
+async function saveAdd(){const btn=$('aSave');btn.disabled=true;
+  const body=addMode==='paste'?{text:$('pasteText').value}:{contacts:[{name:$('oName').value,phone:$('oPhone').value,age:$('oAge').value,education:$('oEducation').value,grades:$('oGrades').value}]};
+  try{const r=await api(`/businesses/${$('aBiz').value}/contacts`,{method:'POST',body});
+    $('dAdd').close();
+    toast(`Added ${r.added} · updated ${r.updated}${r.duplicatesInPaste?` · ${r.duplicatesInPaste} duplicate lines skipped`:''}${r.errors.length?`\n${r.errors.length} skipped:\n`+r.errors.slice(0,5).join('\n'):''}`,r.errors.length&&!r.added&&!r.updated);
+    loadList()}
+  catch(e){toast(e.message,1)}finally{btn.disabled=false}}
+
+function openCustom(){if(!needBiz())return;$('cBiz').innerHTML=bizOptions(biz||st.businesses[0].id);['cPhone','cName','cText'].forEach(i=>$(i).value='');$('dCustom').showModal()}
 async function sendCustom(){const b=$('cSend');b.disabled=true;
-  try{const r=await api('/send-custom',{method:'POST',body:{phone:$('cPhone').value,name:$('cName').value,text:$('cText').value}});
-    $('dCustom').close();filter='ALL';renderFilters();await loadList();openChat(r.contactId)}
-  catch(e){alert(e.message)}finally{b.disabled=false}}
-async function openBiz(){$('bizText').value=(await api('/business')).text;$('dBiz').showModal()}
-async function saveBiz(){await api('/business',{method:'PUT',body:{text:$('bizText').value}});$('dBiz').close()}
-function openQR(){const w=st.wa;$('qrBody').innerHTML=w.state==='qr'&&w.qr?`<p>WhatsApp → Linked devices → Link a device, then scan:</p><img src="${w.qr}">`:`<p>Status: <b>${w.state}</b>${w.me?` (number ${w.me})`:''}</p>`;if(!$('dQR').open)$('dQR').showModal()}
-const SET=[['first_message','First message (use {{name}})','t'],['follow_up_message','Follow-up message','t'],['holding_message','Holding message (when bot doesn\'t know)','t'],['human_handoff_message','Message when customer asks for a human','t'],
- ['daily_limit','Daily limit of first messages','n'],['min_delay','Min delay between messages (sec)','n'],['max_delay','Max delay (sec)','n'],['check_minutes','Check / follow-up interval (min)','n'],['max_followups','Max follow-ups before NO RESPONSE','n'],['approval_mode','Approval mode (1 = bot drafts, you approve; 0 = auto-send)','n']];
-function openSettings(){$('setBody').innerHTML=SET.map(([k,l,t])=>`<label>${l}</label>${t==='t'?`<textarea id="s_${k}" rows="2">${esc(st.settings[k])}</textarea>`:`<input type="number" id="s_${k}" value="${esc(st.settings[k])}">`}`).join('');$('dSet').showModal()}
-async function saveSettings(){const b={};SET.forEach(([k])=>b[k]=$('s_'+k).value);await api('/settings',{method:'PUT',body:b});$('dSet').close();refreshState()}
+  try{const r=await api('/send-custom',{method:'POST',body:{business_id:Number($('cBiz').value),phone:$('cPhone').value,name:$('cName').value,text:$('cText').value}});
+    $('dCustom').close();filter='ALL';renderFilters();await loadList();openChat(r.contactId);toast('Message sent')}
+  catch(e){toast(e.message,1)}finally{b.disabled=false}}
+
+async function openBiz(){const b=curBiz();if(!b)return;const d=await api('/businesses/'+b.id);
+  $('bTitle').textContent=d.name;$('bName').value=d.name;$('bInfo').value=d.info;$('bFirst').value=d.first_message;$('bFollow').value=d.follow_up_message;
+  $('bHold').value=d.holding_message;$('bHandoff').value=d.human_handoff_message;$('bApproval').checked=!!d.approval_mode;$('dBiz').showModal()}
+async function saveBiz(){try{await api('/businesses/'+biz,{method:'PUT',body:{name:$('bName').value,info:$('bInfo').value,first_message:$('bFirst').value,
+    follow_up_message:$('bFollow').value,holding_message:$('bHold').value,human_handoff_message:$('bHandoff').value,approval_mode:$('bApproval').checked?1:0}});
+  $('dBiz').close();refreshState();toast('Business saved')}catch(e){toast(e.message,1)}}
+async function deleteBiz(){const b=curBiz();if(!confirm(`Delete "${b.name}"? Only possible when it has no people.`))return;
+  try{await api('/businesses/'+b.id,{method:'DELETE'});$('dBiz').close();biz=0;await refreshState();loadList();toast('Deleted')}catch(e){toast(e.message,1)}}
+function openQR(){const w=st.wa;$('qrBody').innerHTML=w.state==='qr'&&w.qr?`<p class="muted">On your phone: WhatsApp → Linked devices → Link a device, then scan.</p><img src="${w.qr}">`:`<p><span class="dot ${w.state}" style="display:inline-block;margin-right:6px"></span>Status: <b>${esc(w.state)}</b>${w.me?`<br><span class="muted">Number ${esc(w.me)}</span>`:''}</p>`;if(!$('dQR').open)$('dQR').showModal()}
+const SET=[['daily_limit','Daily limit of first messages (all businesses)','n'],['max_followups','Max follow-ups before no response','n'],['min_delay','Min delay between messages (sec)','n'],['max_delay','Max delay (sec)','n'],['check_minutes','Check / follow-up interval (min)','n']];
+function openSettings(){let html='',nums=[];const flush=()=>{if(nums.length){html+=`<div class="grid2">${nums.join('')}</div>`;nums=[]}};
+  for(const [k,l,t] of SET){if(!l){flush();html+=`<div class="sect">${k}</div>`;continue}
+    if(t==='t'){flush();html+=`<label>${l}</label><textarea id="s_${k}" rows="2">${esc(st.settings[k])}</textarea>`}
+    else nums.push(`<div><label>${l}</label><input type="number" id="s_${k}" value="${esc(st.settings[k])}"></div>`)}
+  flush();$('setBody').innerHTML=html;$('dSet').showModal()}
+async function saveSettings(){const b={};SET.forEach(([k,l])=>{if(l)b[k]=$('s_'+k).value});await api('/settings',{method:'PUT',body:b});$('dSet').close();refreshState();toast('Settings saved')}
 
 function connect(){ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
   ws.onmessage=e=>{const m=JSON.parse(e.data);
