@@ -56,7 +56,21 @@ export function start({ incoming, outgoing }) {
       });
     } catch (e) { console.error('outgoing handler failed', e); }
   });
-  client.initialize().catch((e) => { console.error('WhatsApp init failed', e); setState('error'); });
+  initWithRetry();
+}
+
+// whatsapp-web.js sometimes injects before WhatsApp Web has loaded ("reading 'Socket'") — just retry.
+async function initWithRetry(attempt = 1) {
+  try {
+    await client.initialize();
+  } catch (e) {
+    console.error(`WhatsApp init failed (attempt ${attempt}):`, e.message);
+    setState('starting');
+    try { await client.destroy(); } catch { /* ignore */ }
+    if (attempt >= 5) return setState('error');
+    await sleep(5000 * attempt);
+    return initWithRetry(attempt + 1);
+  }
 }
 
 /** Resolve phone → chat id, null if not on WhatsApp. */
