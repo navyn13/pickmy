@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pickmy WhatsApp Bot</title>
+<style>
+:root{--bg:#f0f2f5;--panel:#fff;--line:#e3e6ea;--text:#1c1e21;--muted:#667781;--green:#128c7e;--bot:#e7f3ff;--me:#d9fdd3;--red:#e53935}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 10px}
+button.primary{background:var(--green);color:#fff;border-color:var(--green)}button.danger{background:var(--red);color:#fff;border-color:var(--red)}
+#top{display:flex;gap:10px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+#top .stats span{margin-right:12px}#top b{font-size:15px}.sp{flex:1}
+#main{flex:1;display:flex;min-height:0}
+#left{width:340px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+#left .tools{padding:8px;border-bottom:1px solid var(--line)}#left input{width:100%;padding:7px;border:1px solid var(--line);border-radius:6px}
+#filters{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}#filters button{padding:3px 8px;font-size:12px;border-radius:12px}#filters button.on{background:var(--green);color:#fff}
+#list{flex:1;overflow:auto}.row{padding:10px 12px;border-bottom:1px solid var(--line);cursor:pointer}.row:hover{background:#f7f8f9}.row.sel{background:#e9f5f3}
+.row .l1{display:flex;justify-content:space-between;gap:6px}.row .nm{font-weight:600}.row .t{color:var(--muted);font-size:11px}
+.row .l2{display:flex;justify-content:space-between;gap:6px;margin-top:3px;color:var(--muted)}.row .l2 .tx{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.badge{font-size:10px;padding:2px 6px;border-radius:10px;background:#ddd;color:#333;white-space:nowrap}
+.NEEDS_HUMAN{background:var(--red);color:#fff}.REPLIED{background:#c8e6c9}.SENT{background:#bbdefb}.NO_RESPONSE{background:#eee;color:#888}.DONE,.STOPPED{background:#d7ccc8}.INVALID{background:#ffcdd2}
+.unread{background:var(--green);color:#fff;border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+#right{flex:1;display:flex;flex-direction:column;min-width:0}
+#head{padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:68%;padding:7px 10px;border-radius:8px;white-space:pre-wrap;word-break:break-word;background:var(--panel);align-self:flex-start;box-shadow:0 1px 1px #0002}
+.m.out{align-self:flex-end;background:var(--bot)}.m.human{background:var(--me)}.m small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+#draft{display:none;padding:8px 14px;background:#fff8e1;border-top:1px solid #ffe082}#draft textarea{width:100%;height:60px}
+#compose{display:flex;gap:8px;padding:10px;background:var(--panel);border-top:1px solid var(--line)}#compose textarea{flex:1;height:44px;resize:none;padding:8px;border:1px solid var(--line);border-radius:6px}
+#notes{width:100%;border:1px solid var(--line);border-radius:6px;padding:4px;font-size:12px;height:34px}
+.empty{margin:auto;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:10px;padding:16px;width:min(640px,94vw)}dialog::backdrop{background:#0006}
+dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialog textarea,dialog input[type=text],dialog input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px}
+#login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center}#login form{background:var(--panel);padding:24px;border-radius:10px;display:flex;flex-direction:column;gap:10px;width:300px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bbb;margin-right:4px}.dot.ready{background:#2e7d32}
+</style></head><body>
+<div id="login"><form onsubmit="return doLogin(event)"><h3 style="margin:0">Pickmy Bot — Login</h3>
+<input type="password" id="pw" placeholder="Password" autofocus><button class="primary">Login</button><div id="lerr" style="color:var(--red)"></div></form></div>
+
+<div id="top">
+  <b>Pickmy Bot</b>
+  <span id="wa" style="cursor:pointer" onclick="openQR()"></span>
+  <span class="stats" id="stats"></span><span class="sp"></span>
+  <button onclick="document.getElementById('file').click()">⬆ Upload Excel</button>
+  <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden onchange="uploadFile(this)">
+  <button id="campBtn" onclick="toggleCampaign()"></button>
+  <button onclick="openBiz()">📝 business.md</button>
+  <button onclick="openSettings()">⚙ Settings</button>
+  <button onclick="location='/api/export'">⬇ Export</button>
+  <button onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.reload())">Logout</button>
+</div>
+<div id="main">
+  <div id="left"><div class="tools"><input id="q" placeholder="Search chats, numbers, notes…" oninput="debounceLoad()">
+    <div id="filters"></div></div><div id="list"></div></div>
+  <div id="right"><div class="empty" id="none">Select a chat</div>
+    <div id="chat" style="display:none;flex:1;flex-direction:column;min-height:0">
+      <div id="head"><div><b id="hname"></b><div class="t" id="hphone" style="color:var(--muted)"></div></div><span id="hbadge" class="badge"></span><span class="sp"></span>
+        <label><input type="checkbox" id="pause" onchange="setPause(this.checked)"> Pause bot</label>
+        <select id="statusSel" onchange="setStatus(this.value)"></select></div>
+      <div style="padding:6px 14px;background:var(--panel)"><textarea id="notes" placeholder="Notes about this contact…" onchange="saveNotes()"></textarea></div>
+      <div id="msgs"></div>
+      <div id="draft"><b>Bot draft (approval mode):</b><textarea id="draftText"></textarea>
+        <button class="primary" onclick="approveDraft()">Send</button> <button onclick="discardDraft()">Discard</button></div>
+      <div id="compose"><textarea id="box" placeholder="Type a message… (sending pauses the bot for this chat)"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();send()}"></textarea><button class="primary" onclick="send()">Send</button></div>
+    </div></div>
+</div>
+
+<dialog id="dBiz"><h3>business.md</h3><textarea id="bizText" rows="18"></textarea><p><button class="primary" onclick="saveBiz()">Save</button> <button onclick="dBiz.close()">Close</button></p></dialog>
+<dialog id="dQR"><h3>WhatsApp connection</h3><div id="qrBody"></div><p><button onclick="dQR.close()">Close</button></p></dialog>
+<dialog id="dSet"><h3>Settings</h3><div id="setBody"></div><p><button class="primary" onclick="saveSettings()">Save</button> <button onclick="dSet.close()">Close</button></p></dialog>
+
+<script>
+const $=id=>document.getElementById(id), api=async(p,o={})=>{const r=await fetch('/api'+p,{headers:{'Content-Type':'application/json'},...o,body:o.body&&JSON.stringify(o.body)});
+  if(r.status===401){showLogin();throw new Error('login')}const j=await r.json();if(!r.ok)throw new Error(j.error||'Error');return j};
+const FILTERS=[['ALL','All'],['NEEDS_HUMAN','Needs Human'],['REPLIED','Replied'],['SENT','Sent'],['NO_RESPONSE','No Response'],['DONE','Done']];
+const STATUSES=['NEW','SENT','REPLIED','NEEDS_HUMAN','NO_RESPONSE','DONE','STOPPED','INVALID'];
+let filter='ALL', cur=null, st=null, ws, timer;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago=t=>{if(!t)return'';const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()};
+
+function showLogin(){$('login').style.display='flex'}
+async function doLogin(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('pw').value})});
+  if(r.ok){$('login').style.display='none';init()}else $('lerr').textContent='Wrong password';return false}
+
+function beep(){try{const c=new AudioContext(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.1;o.start();o.stop(c.currentTime+.25)}catch{}}
+function renderState(s){st=s;const w=s.wa,c=s.counts;
+  $('wa').innerHTML=`<span class="dot ${w.state}"></span>WhatsApp: ${w.state}${w.state==='qr'?' (click to scan)':''}`;
+  $('stats').innerHTML=`Contacts <b>${c.total}</b> · Sent <b>${c.sent}</b> (today ${c.sentToday}/${s.settings.daily_limit}) · Replied <b>${c.replied}</b> · Needs human <b style="color:var(--red)">${c.needsHuman}</b>`;
+  const on=s.settings.campaign_running==='1';$('campBtn').textContent=on?'⏸ Stop campaign':'▶ Start campaign';$('campBtn').className=on?'danger':'primary';
+  document.title=(c.needsHuman?`(${c.needsHuman}) `:'')+'Pickmy WhatsApp Bot';
+  if($('dQR').open)openQR()}
+async function refreshState(){renderState(await api('/state'))}
+
+function renderFilters(){$('filters').innerHTML=FILTERS.map(([k,l])=>`<button class="${k===filter?'on':''}" onclick="filter='${k}';renderFilters();loadList()">${l}</button>`).join('')}
+let lt;function debounceLoad(){clearTimeout(lt);lt=setTimeout(loadList,250)}
+async function loadList(){const rows=await api(`/contacts?status=${filter}&q=${encodeURIComponent($('q').value)}`);
+  $('list').innerHTML=rows.map(c=>`<div class="row ${c.id===cur?'sel':''}" onclick="openChat(${c.id})"><div class="l1"><span class="nm">${esc(c.name||'+'+c.phone)}${c.unread?`<span class="unread">${c.unread}</span>`:''}</span><span class="t">${ago(c.last_message_at)}</span></div>
+  <div class="l2"><span class="tx">${c.draft?'✏ draft pending · ':''}${esc(c.last_message_text)||'<i>no messages yet</i>'}</span><span class="badge ${c.status}">${c.status.replace('_',' ')}${c.bot_paused?' ⏸':''}</span></div></div>`).join('')||'<div class="empty" style="padding:20px">No contacts</div>'}
+
+async function openChat(id){cur=id;const {contact:c,messages}=await api('/contacts/'+id);renderChat(c,messages);loadList()}
+function renderChat(c,messages){$('none').style.display='none';$('chat').style.display='flex';
+  $('hname').textContent=c.name||('+'+c.phone);$('hphone').textContent='+'+c.phone;$('hbadge').textContent=c.status.replace('_',' ');$('hbadge').className='badge '+c.status;
+  $('pause').checked=!!c.bot_paused;$('statusSel').innerHTML=STATUSES.map(s=>`<option ${s===c.status?'selected':''}>${s}</option>`).join('');
+  if(document.activeElement!==$('notes'))$('notes').value=c.notes||'';
+  $('draft').style.display=c.draft?'block':'none';if(c.draft&&document.activeElement!==$('draftText'))$('draftText').value=c.draft;
+  const box=$('msgs');box.innerHTML=messages.map(m=>`<div class="m ${m.direction==='out'?'out':''} ${m.sender==='human'?'human':''}">${esc(m.body)}<small>${m.sender==='customer'?'Customer':m.sender==='bot'?'🤖 Bot':'👤 You'} · ${new Date(m.created_at).toLocaleString()}</small></div>`).join('');
+  box.scrollTop=box.scrollHeight}
+const act=(p,b)=>api(`/contacts/${cur}/${p}`,{method:'POST',body:b||{}}).then(()=>openChat(cur)).catch(e=>alert(e.message));
+const send=()=>{const t=$('box').value.trim();if(t){$('box').value='';act('send',{text:t})}};
+const setPause=p=>act('pause',{paused:p}), setStatus=s=>act('status',{status:s});
+const saveNotes=()=>api(`/contacts/${cur}/notes`,{method:'POST',body:{notes:$('notes').value}});
+const approveDraft=()=>act('draft/approve',{text:$('draftText').value}), discardDraft=()=>act('draft/discard');
+
+async function uploadFile(inp){const f=inp.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);
+  const r=await fetch('/api/upload',{method:'POST',body:fd});const j=await r.json();inp.value='';
+  alert(r.ok?`Found ${j.found} valid numbers\nAdded: ${j.added}\nAlready in database: ${j.alreadyInDb}\nDuplicates in sheet: ${j.duplicatesInSheet}\nInvalid: ${j.invalid}`:j.error);loadList()}
+async function toggleCampaign(){const on=st.settings.campaign_running==='1';
+  if(!on&&!confirm('Start sending first messages to all NEW contacts (up to the daily limit)?'))return;renderState(await api('/campaign',{method:'POST',body:{running:!on}}))}
+async function openBiz(){$('bizText').value=(await api('/business')).text;$('dBiz').showModal()}
+async function saveBiz(){await api('/business',{method:'PUT',body:{text:$('bizText').value}});$('dBiz').close()}
+function openQR(){const w=st.wa;$('qrBody').innerHTML=w.state==='qr'&&w.qr?`<p>WhatsApp → Linked devices → Link a device, then scan:</p><img src="${w.qr}">`:`<p>Status: <b>${w.state}</b>${w.me?` (number ${w.me})`:''}</p>`;if(!$('dQR').open)$('dQR').showModal()}
+const SET=[['first_message','First message (use {{name}})','t'],['follow_up_message','Follow-up message','t'],['holding_message','Holding message (when bot doesn\'t know)','t'],['human_handoff_message','Message when customer asks for a human','t'],
+ ['daily_limit','Daily limit of first messages','n'],['min_delay','Min delay between messages (sec)','n'],['max_delay','Max delay (sec)','n'],['check_minutes','Check / follow-up interval (min)','n'],['max_followups','Max follow-ups before NO RESPONSE','n'],['approval_mode','Approval mode (1 = bot drafts, you approve; 0 = auto-send)','n']];
+function openSettings(){$('setBody').innerHTML=SET.map(([k,l,t])=>`<label>${l}</label>${t==='t'?`<textarea id="s_${k}" rows="2">${esc(st.settings[k])}</textarea>`:`<input type="number" id="s_${k}" value="${esc(st.settings[k])}">`}`).join('');$('dSet').showModal()}
+async function saveSettings(){const b={};SET.forEach(([k])=>b[k]=$('s_'+k).value);await api('/settings',{method:'PUT',body:b});$('dSet').close();refreshState()}
+
+function connect(){ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+  ws.onmessage=e=>{const m=JSON.parse(e.data);
+    if(m.type==='state'||m.type==='wa'){m.type==='state'?renderState(m):refreshState()}
+    if(m.type==='contact'||m.type==='message'||m.type==='state'){clearTimeout(timer);timer=setTimeout(()=>{loadList();if(cur)api('/contacts/'+cur).then(d=>renderChat(d.contact,d.messages))},200)}
+    if(m.type==='incoming'&&m.needsHuman)beep()};
+  ws.onclose=()=>setTimeout(connect,2000)}
+async function init(){try{await refreshState()}catch{return}renderFilters();loadList();connect()}
+init();
+</script></body></html>
