@@ -36,6 +36,7 @@ dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialo
   <b>Pickmy Bot</b>
   <span id="wa" style="cursor:pointer" onclick="openQR()"></span>
   <span class="stats" id="stats"></span><span class="sp"></span>
+  <button onclick="openCustom()">✉ New message</button>
   <button onclick="document.getElementById('file').click()">⬆ Upload Excel</button>
   <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden onchange="uploadFile(this)">
   <button id="campBtn" onclick="toggleCampaign()"></button>
@@ -61,6 +62,12 @@ dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialo
 </div>
 
 <dialog id="dBiz"><h3>business.md</h3><textarea id="bizText" rows="18"></textarea><p><button class="primary" onclick="saveBiz()">Save</button> <button onclick="dBiz.close()">Close</button></p></dialog>
+<dialog id="dCustom"><h3>Send a message to anyone</h3>
+<label>Phone number (with country code, or 10 digits)</label><input type="text" id="cPhone" placeholder="e.g. 6386534239">
+<label>Name (optional)</label><input type="text" id="cName">
+<label>Message</label><textarea id="cText" rows="4"></textarea>
+<p style="color:var(--muted);font-size:12px">The bot stays paused for this chat — replies appear in the dashboard and you answer manually. Untick "Pause bot" in the chat to let the bot take over.</p>
+<p><button class="primary" id="cSend" onclick="sendCustom()">Send</button> <button onclick="dCustom.close()">Close</button></p></dialog>
 <dialog id="dQR"><h3>WhatsApp connection</h3><div id="qrBody"></div><p><button onclick="dQR.close()">Close</button></p></dialog>
 <dialog id="dSet"><h3>Settings</h3><div id="setBody"></div><p><button class="primary" onclick="saveSettings()">Save</button> <button onclick="dSet.close()">Close</button></p></dialog>
 
@@ -107,6 +114,11 @@ async function uploadFile(inp){const f=inp.files[0];if(!f)return;const fd=new Fo
   alert(r.ok?`Found ${j.found} valid numbers\nAdded: ${j.added}\nAlready in database: ${j.alreadyInDb}\nDuplicates in sheet: ${j.duplicatesInSheet}\nInvalid: ${j.invalid}`:j.error);loadList()}
 async function toggleCampaign(){const on=st.settings.campaign_running==='1';
   if(!on&&!confirm('Start sending first messages to all NEW contacts (up to the daily limit)?'))return;renderState(await api('/campaign',{method:'POST',body:{running:!on}}))}
+function openCustom(){['cPhone','cName','cText'].forEach(i=>$(i).value='');$('dCustom').showModal()}
+async function sendCustom(){const b=$('cSend');b.disabled=true;
+  try{const r=await api('/send-custom',{method:'POST',body:{phone:$('cPhone').value,name:$('cName').value,text:$('cText').value}});
+    $('dCustom').close();filter='ALL';renderFilters();await loadList();openChat(r.contactId)}
+  catch(e){alert(e.message)}finally{b.disabled=false}}
 async function openBiz(){$('bizText').value=(await api('/business')).text;$('dBiz').showModal()}
 async function saveBiz(){await api('/business',{method:'PUT',body:{text:$('bizText').value}});$('dBiz').close()}
 function openQR(){const w=st.wa;$('qrBody').innerHTML=w.state==='qr'&&w.qr?`<p>WhatsApp → Linked devices → Link a device, then scan:</p><img src="${w.qr}">`:`<p>Status: <b>${w.state}</b>${w.me?` (number ${w.me})`:''}</p>`;if(!$('dQR').open)$('dQR').showModal()}

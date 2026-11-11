@@ -61,6 +61,7 @@ export function start({ incoming, outgoing }) {
 
 /** Resolve phone → chat id, null if not on WhatsApp. */
 export async function resolveNumber(phone) {
+  if (wa.state !== 'ready') throw new Error('WhatsApp is not connected yet — click the WhatsApp status in the top bar and scan the QR');
   const id = await client.getNumberId(phone);
   return id?._serialized || null;
 }

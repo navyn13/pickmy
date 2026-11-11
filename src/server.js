@@ -8,7 +8,7 @@ import { ROOT, PORT, BUSINESS_FILE } from './config.js';
 import * as D from './db.js';
 import * as W from './whatsapp.js';
 import * as B from './bot.js';
-import { parseSheet, exportWorkbook } from './excel.js';
+import { parseSheet, exportWorkbook, normalizePhone } from './excel.js';
 import { bus } from './events.js';
 
 const app = express();
@@ -52,6 +52,28 @@ app.post('/api/contacts/:id/notes', wrap((req, res) => {
 }));
 app.post('/api/contacts/:id/draft/approve', wrap(async (req, res) => { await B.approveDraft(Number(req.params.id), req.body.text); res.json({ ok: true }); }));
 app.post('/api/contacts/:id/draft/discard', wrap((req, res) => { B.discardDraft(Number(req.params.id)); res.json({ ok: true }); }));
+
+// Send a custom message to any number (creates the contact if new; bot stays paused so you handle the chat)
+app.post('/api/send-custom', wrap(async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  const text = String(req.body.text || '').trim();
+  if (!phone) throw new Error('Invalid phone number (include country code or a 10-digit number)');
+  if (!text) throw new Error('Empty message');
+  let c = D.getContactByPhone(phone); let created = false;
+  if (!c) {
+    D.insertContacts([{ phone, name: String(req.body.name || '').trim() }]);
+    c = D.getContactByPhone(phone); created = true;
+    D.updateContact(c.id, { status: 'SENT', bot_paused: 1 });
+  }
+  try { await B.humanSend(c.id, text); }
+  catch (e) {
+    if (created) D.db.prepare('DELETE FROM contacts WHERE id=?').run(c.id);
+    bus.emit('event', { type: 'state' });
+    throw e;
+  }
+  bus.emit('event', { type: 'state' });
+  res.json({ ok: true, contactId: c.id, created });
+}));
 
 app.post('/api/upload', upload.single('file'), wrap((req, res) => {
   if (!req.file) throw new Error('No file');
