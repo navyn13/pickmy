@@ -1,9 +1,5 @@
 import fs from 'node:fs';
-import Anthropic from '@anthropic-ai/sdk';
-import { BUSINESS_FILE, MODEL } from './config.js';
-
-let client;
-const getClient = () => (client ??= new Anthropic()); // reads ANTHROPIC_API_KEY
+import { BUSINESS_FILE, MODEL, GEMINI_API_KEY } from './config.js';
 
 export const readBusiness = () => (fs.existsSync(BUSINESS_FILE) ? fs.readFileSync(BUSINESS_FILE, 'utf8') : '');
 
@@ -25,16 +21,19 @@ export async function generateReply(history, contactName) {
   const transcript = history
     .map((m) => `${m.direction === 'in' ? 'CUSTOMER' : 'BUSINESS'}: ${m.body}`)
     .join('\n');
-  const res = await getClient().messages.create({
-    model: MODEL,
-    max_tokens: 500,
-    system: `${INSTRUCTIONS}\n\n=== BUSINESS INFO ===\n${readBusiness()}\n=== END BUSINESS INFO ===`,
-    messages: [{
-      role: 'user',
-      content: `Customer name: ${contactName || 'unknown'}\n\nConversation so far (most recent last):\n${transcript}\n\nWrite the next reply as JSON.`,
-    }],
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not set');
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: `${INSTRUCTIONS}\n\n=== BUSINESS INFO ===\n${readBusiness()}\n=== END BUSINESS INFO ===` }] },
+      contents: [{ role: 'user', parts: [{ text: `Customer name: ${contactName || 'unknown'}\n\nConversation so far (most recent last):\n${transcript}\n\nWrite the next reply as JSON.` }] }],
+      generationConfig: { responseMimeType: 'application/json', maxOutputTokens: 600, temperature: 0.3 },
+    }),
   });
-  const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${data.error?.message || 'request failed'}`);
+  const text = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('');
   const m = text.match(/\{[\s\S]*\}/);
   if (!m) throw new Error('LLM returned no JSON: ' + text.slice(0, 200));
   const out = JSON.parse(m[0]);

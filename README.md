@@ -1,11 +1,11 @@
 # Pickmy — WhatsApp outreach + auto-reply bot
 
-Excel → WhatsApp first message → live replies → Claude answers from `business.md` → you take over from a dashboard when needed.
+Excel → WhatsApp first message → live replies → Gemini answers from `business.md` → you take over from a dashboard when needed.
 
 ## Setup
 ```bash
 npm install
-cp .env.example .env      # set DASHBOARD_PASSWORD, SESSION_SECRET, ANTHROPIC_API_KEY, DEFAULT_COUNTRY_CODE
+cp .env.example .env      # set DASHBOARD_PASSWORD, SESSION_SECRET, GEMINI_API_KEY, DEFAULT_COUNTRY_CODE
 npm start                 # dashboard on http://localhost:3000
 ```
 1. Log in, click the **WhatsApp** status (top bar) and scan the QR (WhatsApp → Linked devices). The session is saved in `.wwebjs_auth/`.
@@ -18,7 +18,7 @@ npm start                 # dashboard on http://localhost:3000
 - Numbers are cleaned (country code added, duplicates removed) and stored in SQLite (`data/bot.db`).
 - Statuses: NEW → SENT → REPLIED / NEEDS_HUMAN / NO_RESPONSE / DONE (+ STOPPED, INVALID).
 - First messages: random 20–60 s delay, daily limit. Follow-ups every N minutes up to a max, then NO_RESPONSE.
-- Replies come from Claude using only `business.md`; unknown → holding message + NEEDS_HUMAN (bot pauses).
+- Replies come from Gemini using only `business.md`; unknown → holding message + NEEDS_HUMAN (bot pauses).
 - Customer says STOP → bot stops. Asks for a human → hand-off.
 - Messages you send (dashboard or phone) auto-pause the bot for that chat; untick "Pause bot" to resume.
 - Approval mode: the bot drafts, you edit/approve.

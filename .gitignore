@@ -3,3 +3,4 @@ data/
 .wwebjs_auth/
 .wwebjs_cache/
 .env
+contacts.csv
