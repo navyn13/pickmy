@@ -1,38 +1,20 @@
 import express from 'express';
 import multer from 'multer';
 import http from 'node:http';
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { WebSocketServer } from 'ws';
-import { ROOT, PORT, PASSWORD, SESSION_SECRET, BUSINESS_FILE } from './config.js';
+import { ROOT, PORT, BUSINESS_FILE } from './config.js';
 import * as D from './db.js';
 import * as W from './whatsapp.js';
 import * as B from './bot.js';
 import { parseSheet, exportWorkbook } from './excel.js';
 import { bus } from './events.js';
 
-if (!PASSWORD) { console.error('Set DASHBOARD_PASSWORD in .env first (see .env.example).'); process.exit(1); }
-
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// ---- auth: signed cookie ----
-const sign = (v) => crypto.createHmac('sha256', SESSION_SECRET).update(v).digest('hex');
-const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
-const makeToken = () => { const exp = String(Date.now() + 7 * 864e5); return `${exp}.${sign(exp)}`; };
-const validToken = (t = '') => { const [exp, sig] = t.split('.'); return !!sig && Number(exp) > Date.now() && safeEq(sig, sign(exp)); };
-const cookieOf = (req) => Object.fromEntries((req.headers.cookie || '').split(';').map((c) => c.trim().split('=').map(decodeURIComponent)))['auth'];
-
-app.post('/api/login', (req, res) => {
-  const ok = typeof req.body.password === 'string' && safeEq(sign(req.body.password), sign(PASSWORD));
-  if (!ok) return res.status(401).json({ error: 'Wrong password' });
-  res.setHeader('Set-Cookie', `auth=${makeToken()}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${7 * 86400}`);
-  res.json({ ok: true });
-});
-app.post('/api/logout', (_q, res) => { res.setHeader('Set-Cookie', 'auth=; Max-Age=0; Path=/'); res.json({ ok: true }); });
-app.use('/api', (req, res, next) => (validToken(cookieOf(req)) ? next() : res.status(401).json({ error: 'Login required' })));
 app.use(express.static(path.join(ROOT, 'public')));
 
 const wrap = (fn) => (req, res) => Promise.resolve(fn(req, res)).catch((e) => res.status(400).json({ error: e.message }));
@@ -104,7 +86,7 @@ const emitContact = (id) => bus.emit('event', { type: 'contact', contact: D.getC
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', (req, socket, head) => {
-  if (req.url !== '/ws' || !validToken(cookieOf(req))) return socket.destroy();
+  if (req.url !== '/ws') return socket.destroy();
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws));
 });
 bus.on('event', (ev) => {
@@ -114,4 +96,4 @@ bus.on('event', (ev) => {
 
 W.start({ incoming: B.onIncoming, outgoing: B.onOutgoingFromPhone });
 B.startScheduler();
-server.listen(PORT, () => console.log(`Dashboard: http://localhost:${PORT}`));
+server.listen(PORT, '127.0.0.1', () => console.log(`Dashboard: http://localhost:${PORT}`));

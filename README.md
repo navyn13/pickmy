@@ -5,10 +5,10 @@ Excel → WhatsApp first message → live replies → Gemini answers from `busin
 ## Setup
 ```bash
 npm install
-cp .env.example .env      # set DASHBOARD_PASSWORD, SESSION_SECRET, GEMINI_API_KEY, DEFAULT_COUNTRY_CODE
-npm start                 # dashboard on http://localhost:3000
+cp .env.example .env      # set GEMINI_API_KEY, DEFAULT_COUNTRY_CODE
+npm start                 # dashboard on http://localhost:3001
 ```
-1. Log in, click the **WhatsApp** status (top bar) and scan the QR (WhatsApp → Linked devices). The session is saved in `.wwebjs_auth/`.
+1. Click the **WhatsApp** status (top bar) and scan the QR (WhatsApp → Linked devices). The session is saved in `.wwebjs_auth/`.
 2. Edit **business.md** (top bar) with your services, prices, timings, location, FAQs.
 3. Review **Settings** (messages, daily limit, delays, follow-ups, approval mode).
 4. **Upload Excel** (.xlsx/.csv; column named phone/mobile/number, optional name column).

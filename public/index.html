@@ -29,11 +29,8 @@ button.primary{background:var(--green);color:#fff;border-color:var(--green)}butt
 .empty{margin:auto;color:var(--muted)}
 dialog{border:1px solid var(--line);border-radius:10px;padding:16px;width:min(640px,94vw)}dialog::backdrop{background:#0006}
 dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialog textarea,dialog input[type=text],dialog input[type=number]{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px}
-#login{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center}#login form{background:var(--panel);padding:24px;border-radius:10px;display:flex;flex-direction:column;gap:10px;width:300px}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bbb;margin-right:4px}.dot.ready{background:#2e7d32}
 </style></head><body>
-<div id="login"><form onsubmit="return doLogin(event)"><h3 style="margin:0">Pickmy Bot — Login</h3>
-<input type="password" id="pw" placeholder="Password" autofocus><button class="primary">Login</button><div id="lerr" style="color:var(--red)"></div></form></div>
 
 <div id="top">
   <b>Pickmy Bot</b>
@@ -45,7 +42,6 @@ dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialo
   <button onclick="openBiz()">📝 business.md</button>
   <button onclick="openSettings()">⚙ Settings</button>
   <button onclick="location='/api/export'">⬇ Export</button>
-  <button onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.reload())">Logout</button>
 </div>
 <div id="main">
   <div id="left"><div class="tools"><input id="q" placeholder="Search chats, numbers, notes…" oninput="debounceLoad()">
@@ -70,16 +66,12 @@ dialog label{display:block;margin:8px 0 2px;font-weight:600;font-size:12px}dialo
 
 <script>
 const $=id=>document.getElementById(id), api=async(p,o={})=>{const r=await fetch('/api'+p,{headers:{'Content-Type':'application/json'},...o,body:o.body&&JSON.stringify(o.body)});
-  if(r.status===401){showLogin();throw new Error('login')}const j=await r.json();if(!r.ok)throw new Error(j.error||'Error');return j};
+  const j=await r.json();if(!r.ok)throw new Error(j.error||'Error');return j};
 const FILTERS=[['ALL','All'],['NEEDS_HUMAN','Needs Human'],['REPLIED','Replied'],['SENT','Sent'],['NO_RESPONSE','No Response'],['DONE','Done']];
 const STATUSES=['NEW','SENT','REPLIED','NEEDS_HUMAN','NO_RESPONSE','DONE','STOPPED','INVALID'];
 let filter='ALL', cur=null, st=null, ws, timer;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ago=t=>{if(!t)return'';const d=new Date(t);return d.toDateString()===new Date().toDateString()?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString()};
-
-function showLogin(){$('login').style.display='flex'}
-async function doLogin(e){e.preventDefault();const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:$('pw').value})});
-  if(r.ok){$('login').style.display='none';init()}else $('lerr').textContent='Wrong password';return false}
 
 function beep(){try{const c=new AudioContext(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.value=.1;o.start();o.stop(c.currentTime+.25)}catch{}}
 function renderState(s){st=s;const w=s.wa,c=s.counts;
